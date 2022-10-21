@@ -1,0 +1,167 @@
+---
+title: Multiple Account Strategy
+last_reviewed_on: 2022-01-27
+review_in: 6 months
+weight: 5
+---
+
+# <%= current_page.data.title %>
+
+<%= partial('partials/page_toc') %>
+
+## AWS Organisations and account hierarchy
+
+### AWS account structure
+
+Within the MCA's AWS environment, each service is hosted within it's own AWS account. AWS Organisations allows the MCA to host several accounts within the same organisational tenant, enabling management of the services from one central view - e.g. access controls. The individual service accounts can either be standalone, or categorised into organisational units
+
+An organizational unit (OU) is a logical grouping of accounts in your organization, created using AWS Organizations. OUs enable users to organize your accounts into a hierarchy and make it easier for users to apply management controls.
+
+![AWS OU example](/source/images/AWS_Organisations.png "AWS_OU_Example")
+
+### MCA AWS account structure
+
+In line with best practice recommendations, the MCA will organise services into individual OUs with accounts in each for the required developement, staging and production accounts.
+
+![MCA Account Structure](/source/images/AWS-Organisations-MCA-specific.png "MCA_Account_Structure")
+
+### Benefits
+
+Separating services into AWS Organisational units means an additional layer of security can be enforced compared to all services being hosted within one AWS account. Further differenciating the services into operational units with separate accounts for versioning environments provides an additional 'blast radius' should any problems occur within a specific environment.
+
+Access to each service can be granted or restricted at the Organisational Unit level, or additional access requirements can be set up for each of the versioning environments if need be.
+
+## AWS ControlTower
+
+Expanding on AWS Organisations, AWS Control Tower provides a way to automate many of the steps required to build a multi-account environment and govern at scale. It creates a landing zone, which consolidates ongoing account management and governance as well as implementation of best practices in one place. Within Control Tower governance rules called 'Guardrails' can be applied to accounts and OUs to ensure compliance with agency policies.
+
+Control Tower can be can be used to establish new accounts or can be extended to existing accounts (see [Enrolling accounts in AWS Control Tower](#account-provisioning)). Via the Landing Zone and dashboards visibility into account compliance status can be gained quickly. It builds on the existing structure the MCA had in place with AWS Organisations, and allows a better overall veiw of monitoring and management of the individual accounts.
+
+AWS ControlTower structure introduces two new accounts in the Organisational structure, as well as new OUs.
+
+- Log Archive account – repository for logs of API activity and resource configurations from all accounts within the landing zone.
+- Audit Account – a restricted account that allows security and compliance teams read and write access to all accounts within the landing zone.
+- Security OU - houses the Log Archive account and the Audit account.
+- Sandbox OU – a designated sandbox account for testing.
+
+![MCA Account Structure](/source/images/AWS-Organisations-MCA-specific.png "MCA_Account_Structure")
+
+### Guardrails
+
+Guardrails are pre-packaged governance rules for security, operations, and compliance that users can select and apply enterprise-wide or to specific groups of accounts.
+
+A guardrail is expressed in plain English, and enforces a specific governance policy for your AWS environment that can be enabled within an AWS Organizations organizational unit (OU). Each guardrail has two dimensions: it can be either preventive or detective, and it can be either mandatory or optional.
+
+#### Preventative and Detective Guardrails
+
+Preventive guardrails prevent deployment of resources that don’t conform to your policies (for example, ‘Enable AWS CloudTrail in all accounts’). Detective guardrails (for example, ‘Detect whether public read access to Amazon S3 buckets is allowed’) continuously monitor deployed resources for nonconformance.
+
+AWS Control Tower automatically translates guardrails into granular AWS policies by:
+
+- Preventing configuration changes of the underlying implementation using service control policies (for preventive guardrails)
+- Continuously detecting configuration changes through AWS Config rules (for detective guardrails)
+- Updating guardrail status on the AWS Control Tower dashboard
+
+#### Guardrail details
+
+In the guardrail details page of the console, users can find the following details for each guardrail:
+
+- **Name** – The name of the guardrail.
+- **Description** – A description of the guardrail.
+- **Guidance** – The guidance is either mandatory, strongly recommended, or elective.
+- **Category** – The guardrail category can be Audit logs, Data residency, Data security, Monitoring, Network, Operations, IAM, or AWS Control Tower Setup.
+- **Release date** –The date the guardrail became available.
+- **Behavior** – A guardrail's behavior is set to either preventive or detective.
+- **Compliance Status** – A guardrail's compliance status can be Clear, Compliant, Enforced, Unknown, or In violation. For more information, see AWS Control Tower compliance status for guardrails, OUs, and accounts.
+- **State** – The state of enablement for a guardrail on the current OU. A guardrail's state can be Enabled, Enabling, Failed to enable, Failed to disable, or Disabling. If a guardrail is enabled on an OU higher on the hierarchy tree of a nested OU, the state will show Inherited.
+- The status of the Region deny guardrail is shown as a separate entry.
+
+The guardrail is implemented by one or more artifacts. These artifacts can include a baseline AWS CloudFormation template, a service control policy (SCP) to prevent account-level configuration changes or activity that may create configuration drift, and AWS Config Rules to detect account-level policy violations.
+
+#### Mandatory and Optional Guardrails
+
+AWS Control Tower offers a curated set of guardrails based on AWS best practices and common customer policies for governance. You can automatically leverage mandatory guardrails as part of your landing zone setup. Some examples of mandatory guardrails include:
+
+- Disallow changes to AWS IAM roles set up by AWS Control Tower and AWS CloudFormation
+- Detect public read access setting for log archive
+- Disallow changes to bucket policy for AWS Control Tower created Amazon S3 buckets in log archive
+- Disallow cross-Region networking
+
+You can also choose to enable optional guardrails at any time. All accounts provisioned under OUs where optional guardrails are enabled will automatically inherit those guardrails. Examples of optional guardrails include:
+
+- Detect whether public write access to Amazon S3 buckets is allowed
+- Detect whether MFA for the root user is enabled
+- Detect whether encryption is enabled for Amazon EBS volumes attached to Amazon EC2 instances
+
+#### Utilisation within the MCA
+
+For information on how the MCA will utilise Guardrails please see MCA AWS Control Tower: Guardrails.
+
+### Account Factory
+
+The account factory automates provisioning of new accounts. As a configurable account template, it helps standardize provisioning of new accounts with pre-approved account configurations. You can configure the account factory with pre-approved network configuration and Region selections, and enable self-service to configure and provision new accounts using AWS Service Catalog. Additionally, users can take advantage of Control Tower Solutions like Account Factory for Terraform to automate the provisioning and customization of a Control Tower-managed account that meets your business and security policies, before delivering it to end users.
+
+For the MCAs current utilisation, we likely won't need to provision accounts with Account Factory yet, but given the growing AWS platform it may become useful in the future.
+
+### Landing Zone Dashboard
+
+The AWS Control Tower dashboard gives users continuous visibility into your AWS environment. You can view the number of OUs and accounts provisioned and the number of guardrails enabled, and check the status of your OUs and accounts against those guardrails. You can also see a list of noncompliant resources with respect to enabled guardrails.
+
+## Account Provisioning
+
+### Provisioning an account via AWS Organisations
+
+A basic account, with no configuration options predefined can be added via AWS Organisations.
+
+To add an account into the Organisational tenant a user must have administrator access to the management account (MCA Admin).
+
+Within the management account navigate to the AWS Organisations service.
+
+![Create Account Screenshot](/source/images/create-account-diagram.png "Create_Account_Screenshot")
+
+Within AWS Organisations;
+
+- New accounts can be added to the Organisational tenant.
+- New OUs can be added to the Organisational account structre.
+- Accounts can be moved in to, or out of OUs.
+- Accounts can be removed from the Organisational tenant altogether.
+- The account will have no predefined access (unless added to an OU which grants access), and no predefined governance policys to adhere to until it is enrolled into Control Tower.
+
+To create a new account, a unique email must be assigned to the account. A distribution list called ‘Amazon Web Services Notification’ are used for this purpose.
+
+New email addresses for AWS accounts need to be added as an alias to the distribution list. The linked email format has historically been an initial follow by a car make/model. E.g., ‘pfiesta@mcga.gov.uk’, ‘kgolf@mcga.gov.uk’ etc. This format should be adhered to for future email addresses.
+
+### Enrolling accounts in AWS Control Tower
+
+#### Pre-requisites for an account to be enrolled:
+
+- The account that users wish to enroll must exist in the same AWS Organizations organization as the AWS Control Tower management account. It must also be in an OU that already is registered with AWS Control Tower.
+- The account should not have an AWS Config configuration recorder or delivery channel.
+- Before users can enroll an existing account in AWS Control Tower, the account must have the following roles, permissions, and trust relationships in place. Otherwise, enrollment will fail.
+* Role Name: AWSControlTowerExecution
+* Role Permission: AdministratorAccess (AWS managed policy)
+* Role Trust Relationship:
+
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+     {
+    "Effect": "Allow",
+    "Principal": {
+    "AWS": "arn:aws:iam::Management Account ID:root"
+         },
+        "Action": "sts:AssumeRole",
+        "Condition": {}
+      }
+      ]
+     }
+```
+
+#### Enrolling an account OU
+
+Once the pre-requisites for the account are met, enrolling an account to Control Tower is a simple process. Contorl Tower must already have been configured for the Organisation the account sits in, and all other accounts in the OU being registerd must also meet the pre-requisites.
+
+Navigate to the Control Tower service within your AWS Management account. Under the OUs menu, select the OU that the account users need to register sits in and select 'Register OU'.
+
+![Enroll Account Screenshot](/source/images/enroll-account.png "Enroll_Account_Screenshot")

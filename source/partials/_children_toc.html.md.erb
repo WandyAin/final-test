@@ -1,0 +1,11 @@
+<ul>
+<% current_page.children.sort_by{ |a| [a.data.weight , a.data.title] }.each do |page| %>
+  <% if page.data.hide_in_toc != true %>
+     <% if page.data.link_in_toc == true %>
+        <li><%= link_to page.data.title, page.url %> <%= page.data.summary %> </li>
+     <% else %>
+        <li><%= page.data.summary %> </li>
+     <% end %>
+  <% end %>
+<% end %>
+</ul>
